@@ -1,0 +1,547 @@
+<!DOCTYPE html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>VerbTha God</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;1,9..144,500&family=Hanken+Grotesk:wght@400;500;600&family=DM+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: one gallery stage. A clothes rail of five tees; click one and it slides out to a detail view with a front/back turn, sizes and an order button. */
+:root{
+  --bg:#efeee9;        /* page ground, slightly cool off-white */
+  --ink:#141413;       /* text, rail, buttons */
+  --mute:#76746e;      /* captions */
+  --line:#cdcbc3;      /* hairlines */
+  --paper:#f7f6f2;     /* raised controls */
+  --display:"Fraunces", "Iowan Old Style", Georgia, serif;
+  --body:"Hanken Grotesk", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mono:"DM Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+  color-scheme:light;
+}
+*{box-sizing:border-box}
+html{background:var(--bg)}
+body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:15px;line-height:1.45;padding-inline:clamp(16px,3.2vw,40px);padding-block:0 28px;min-height:100%}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer;padding:0}
+a{color:inherit}
+:focus-visible{outline:2px solid var(--ink);outline-offset:3px}
+.wrap{max-width:1180px;margin-inline:auto}
+
+/* header */
+.top{display:flex;align-items:center;justify-content:space-between;gap:16px;padding-block:22px 10px}
+.logo{font-family:var(--display);font-weight:600;font-size:clamp(22px,2.6vw,30px);letter-spacing:-.03em;line-height:1;font-variation-settings:"opsz" 144}
+.logo i{font-weight:500}
+.nav{display:flex;gap:26px;font-size:13px}
+.nav a{text-decoration:none;padding-block:4px;border-bottom:1px solid transparent}
+.nav a[aria-current]{border-bottom-color:var(--ink)}
+.nav a sup{font-family:var(--mono);font-size:10px;color:var(--mute);margin-left:4px}
+.motion{font-family:var(--mono);font-size:11px;letter-spacing:.04em;display:flex;align-items:center;gap:8px;padding:6px 10px;border:1px solid var(--line);border-radius:99px;background:var(--paper)}
+.motion .pip{width:7px;height:7px;border-radius:50%;background:var(--ink)}
+.motion[aria-pressed="false"] .pip{background:transparent;border:1px solid var(--mute)}
+
+/* title row */
+.titlebar{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;padding-block:30px 0}
+h1{font-family:var(--display);font-weight:400;font-size:clamp(26px,3.4vw,38px);letter-spacing:-.025em;line-height:1.05;margin:0;text-wrap:balance}
+.meta{font-family:var(--mono);font-size:10.5px;text-transform:uppercase;letter-spacing:.08em;color:var(--mute);text-align:right;line-height:1.7}
+
+/* stage */
+.stage{background:var(--bg);position:relative;min-height:440px}
+.view{background:var(--bg);animation:rise .5s cubic-bezier(.2,.7,.2,1) both}
+@keyframes rise{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+[data-mode="rail"] .detail-view,[data-mode="detail"] .rail-view{display:none}
+
+/* rail */
+.rail-scroll{overflow-x:auto;overflow-y:hidden;padding-block:34px 6px;scrollbar-width:none;touch-action:pan-x pan-y}
+.rail-scroll::-webkit-scrollbar{display:none}
+.rail{position:relative;display:flex;min-width:760px;padding-top:0}
+.rail::before{content:"";position:absolute;left:0;right:0;top:0;height:2px;background:var(--ink);border-radius:2px}
+.slot{flex:1 1 0;display:flex;justify-content:center;min-width:0}
+.hang{position:relative;display:block;transform-origin:50% 0;width:clamp(130px,15.5vw,186px);padding-top:2px;will-change:transform;mix-blend-mode:multiply;cursor:grab}
+.hang:active{cursor:grabbing}
+.hook{display:block;width:44px;height:30px;margin:-14px auto -2px;overflow:visible}
+.art{display:block;width:100%;aspect-ratio:1.18;position:relative;margin-top:-6px}
+.art img{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;display:block;transition:transform .35s cubic-bezier(.2,.7,.2,1);pointer-events:none;-webkit-user-drag:none;user-select:none}
+.slot[data-focus="true"] .art img{transform:translateY(-4px) scale(1.04)}
+.shadow{position:absolute;left:50%;bottom:-18px;width:60%;height:14px;transform:translateX(-50%);background:radial-gradient(closest-side,rgba(20,20,19,.16),transparent);pointer-events:none}
+
+.caption{display:grid;grid-template-columns:1fr auto 1fr;align-items:end;gap:16px;padding-top:40px}
+.counter{font-family:var(--mono);font-size:11px;color:var(--mute);display:flex;align-items:center;gap:10px;font-variant-numeric:tabular-nums}
+.counter span.bar{display:block;width:44px;height:1px;background:var(--line)}
+.who{text-align:center;min-width:0}
+.who strong{display:block;font-family:var(--display);font-weight:500;font-size:19px;letter-spacing:-.01em}
+.who span{display:block;font-family:var(--mono);font-size:11px;color:var(--mute);margin-top:2px}
+.who .open{margin-top:8px;font-size:12px;font-weight:600;border-bottom:1px solid var(--ink);padding-bottom:1px}
+.arrows{display:flex;justify-content:flex-end;gap:8px}
+.arrow{width:30px;height:30px;border:1px solid var(--line);border-radius:50%;display:grid;place-items:center;background:var(--paper);transition:background .2s,color .2s}
+.arrow:hover{background:var(--ink);color:var(--paper);border-color:var(--ink)}
+.dots{display:flex;justify-content:center;gap:4px;padding-top:18px}
+.dot{width:22px;height:22px;display:grid;place-items:center}
+.dot::before{content:"";width:8px;height:8px;border-radius:50%;border:1px solid var(--ink);transition:background .2s,transform .2s}
+.dot[aria-current="true"]::before{background:var(--ink);transform:scale(1.25)}
+
+/* detail */
+.detail-view{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);gap:clamp(20px,5vw,72px);padding-block:20px 8px;align-items:start}
+.back-link{margin-bottom:10px;font-size:12px;display:inline-flex;gap:8px;align-items:center;color:var(--mute);padding:6px 0}
+.back-link:hover{color:var(--ink)}
+.dstage{position:relative;padding-top:20px;display:flex;justify-content:center}
+.dstage .drail{position:absolute;top:0;left:6%;right:6%;height:2px;background:var(--ink);border-radius:2px}
+.dhang{transform-origin:50% 0;width:min(100%,380px);mix-blend-mode:multiply;position:relative}
+.turn{perspective:1100px;cursor:grab;touch-action:pan-y;user-select:none}
+.turn:active{cursor:grabbing}
+.flip{transform-style:preserve-3d;will-change:transform}
+.dart{display:block;width:100%;aspect-ratio:1.12;position:relative}
+.dart img{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;pointer-events:none;-webkit-user-drag:none}
+.panel{padding-top:44px;min-width:0}
+.series{font-family:var(--mono);font-size:10.5px;text-transform:uppercase;letter-spacing:.08em;color:var(--mute)}
+.panel h2{font-family:var(--display);font-weight:500;font-size:clamp(28px,3.4vw,40px);letter-spacing:-.025em;line-height:1.05;margin:8px 0 6px;text-wrap:balance}
+.price{font-size:17px;font-variant-numeric:tabular-nums;margin-bottom:22px}
+.row{display:flex;flex-wrap:wrap;align-items:center;gap:10px 14px;margin-bottom:18px}
+.seg{display:inline-flex;border:1px solid var(--ink);border-radius:3px;overflow:hidden}
+.seg button{padding:8px 16px;font-size:13px;font-weight:500;background:var(--paper)}
+.seg button[aria-pressed="true"]{background:var(--ink);color:var(--paper)}
+.seg button:disabled{color:var(--mute);cursor:not-allowed;text-decoration:line-through}
+.hint{font-family:var(--mono);font-size:10.5px;color:var(--mute)}
+.label{display:flex;justify-content:space-between;font-family:var(--mono);font-size:10.5px;color:var(--mute);margin-bottom:8px;max-width:420px}
+.sizes{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:22px}
+.sizes button{min-width:46px;padding:9px 0;border:1px solid var(--line);border-radius:3px;font-size:13px;background:var(--paper);transition:border-color .15s}
+.sizes button:hover{border-color:var(--ink)}
+.sizes button[aria-pressed="true"]{background:var(--ink);color:var(--paper);border-color:var(--ink)}
+.order{display:block;width:100%;max-width:420px;background:var(--ink);color:var(--paper);padding:15px 18px;font-size:14px;font-weight:600;text-align:center;border-radius:3px;text-decoration:none;transition:opacity .2s}
+.order:hover{opacity:.86}
+.status{font-size:12.5px;color:var(--ink);margin-top:12px;min-height:1.4em;max-width:420px}
+.fine{font-size:12px;color:var(--mute);margin-top:6px;max-width:420px}
+
+footer{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;border-top:1px solid var(--line);margin-top:48px;padding-top:16px;font-family:var(--mono);font-size:10.5px;color:var(--mute)}
+
+.no-motion *{animation:none!important;transition:none!important}
+
+@media (max-width:760px){
+  .nav .store{display:none}
+  .titlebar{padding-top:20px}
+  .meta{display:none}
+  .rail{min-width:700px}
+  .caption{grid-template-columns:1fr;justify-items:center;padding-top:30px}
+  .counter{order:3}.arrows{order:2;justify-content:center}
+  .detail-view{grid-template-columns:minmax(0,1fr)}
+  .panel{padding-top:8px}
+  .dhang{width:min(88%,340px)}
+}
+
+/* fit for the week */
+.fit{margin-top:80px;border-top:1px solid var(--line)}
+.fit .sub{font-family:var(--display);font-style:italic;font-size:clamp(17px,2vw,21px);color:var(--mute);margin:8px 0 0}
+.ftabs{display:flex;flex-wrap:wrap;gap:8px;padding-block:22px 0}
+.ftabs button{padding:8px 15px;border:1px solid var(--line);border-radius:99px;font-size:13px;background:var(--paper);transition:background .2s,color .2s}
+.ftabs button:hover{border-color:var(--ink)}
+.ftabs button[aria-pressed="true"]{background:var(--ink);color:var(--paper);border-color:var(--ink)}
+.fit-grid{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);gap:clamp(20px,5vw,72px);padding-block:26px 8px;align-items:start}
+.rack{position:relative;padding-top:20px;max-width:560px;width:100%;margin-inline:auto}
+.frail{position:absolute;top:0;left:2%;right:2%;height:2px;background:var(--ink);border-radius:2px}
+.fhangs{display:flex;justify-content:space-around;align-items:flex-start;gap:2%}
+.fh{transform-origin:50% 0;mix-blend-mode:multiply;flex:none;transition:transform .3s}
+.fh .hook{margin-top:-14px}
+.fh img{display:block;width:100%;height:auto;margin-top:-6px;pointer-events:none;user-select:none}
+.floor{border-top:1px solid var(--line);margin-top:28px;display:flex;justify-content:center}
+.floor img{width:48%;height:auto;mix-blend-mode:multiply;display:block;margin-top:4px}
+.soon{padding:60px 0;color:var(--mute);font-size:14px;text-align:center}
+.fpanel{padding-top:8px;min-width:0}
+.fpanel h2{font-family:var(--display);font-weight:500;font-size:clamp(28px,3.4vw,40px);letter-spacing:-.025em;line-height:1.05;margin:0 0 6px}
+.fpanel .tag{color:var(--mute);margin:0 0 4px;font-size:14px}
+.fdesc{max-width:440px;font-size:14.5px;line-height:1.65;margin:16px 0 20px}
+.fdesc p{margin:0 0 10px}
+.pieces{list-style:none;padding:0;margin:0 0 22px;max-width:420px;border-top:1px solid var(--line)}
+.pieces li{display:flex;justify-content:space-between;gap:12px;padding:9px 0;border-bottom:1px solid var(--line);font-size:13.5px;transition:padding .2s}
+.pieces li span{font-family:var(--mono);font-size:10.5px;color:var(--mute);white-space:nowrap}
+.pieces li.on{padding-left:8px;font-weight:600}
+@media (max-width:760px){.fit-grid{grid-template-columns:minmax(0,1fr)}}
+</style>
+
+<div class="wrap">
+  <header class="top">
+    <div class="logo">Verb<i>Tha</i> God</div>
+    <nav class="nav" aria-label="Main">
+      <a href="#collection" aria-current="page">Fresh release<sup id="navcount">05</sup></a>
+      <a href="#fit">Fit for the week</a>
+      <a class="store" id="storelink" href="#collection">Official store</a>
+    </nav>
+  </header>
+
+  <div class="titlebar" id="collection">
+    <h1>Fresh release this week.</h1>
+    <div class="meta">New this week<br>Volume 001 / 2026</div>
+  </div>
+
+  <main class="stage" id="stage" data-mode="rail">
+    <section class="view rail-view" aria-label="Collection rail">
+      <div class="rail-scroll" id="railscroll"><div class="rail" id="rail"></div></div>
+      <div class="caption">
+        <div class="counter"><span id="cnum">01</span><span class="bar"></span><span id="ctotal">05</span></div>
+        <div class="who" aria-live="polite">
+          <strong id="wname"></strong>
+          <span id="wprice"></span>
+          <button class="open" id="wopen" type="button">View this tee</button>
+        </div>
+        <div class="arrows">
+          <button class="arrow" id="prev" type="button" aria-label="Previous tee">&#8592;</button>
+          <button class="arrow" id="next" type="button" aria-label="Next tee">&#8594;</button>
+        </div>
+      </div>
+      <div class="dots" id="dots" role="group" aria-label="Choose a tee"></div>
+    </section>
+
+    <section class="view detail-view" aria-label="Tee detail">
+      <div>
+        <button class="back-link" id="back" type="button">&#215;&nbsp; Back to the rail</button>
+        <div class="dstage">
+          <div class="drail"></div>
+          <div class="dhang" id="dhang">
+            <svg class="hook" viewBox="0 0 44 30" aria-hidden="true" style="width:44px;height:30px;display:block;margin:-14px auto -2px"><circle cx="22" cy="10" r="5.5" fill="none" stroke="#141413" stroke-width="2"/><path d="M22 15.5 V30" fill="none" stroke="#141413" stroke-width="2" stroke-linecap="round"/></svg>
+            <div class="turn" id="turn"><div class="flip" id="flip"><div class="dart"><img id="dimg" alt="" draggable="false"></div></div></div>
+          </div>
+        </div>
+      </div>
+      <div class="panel">
+        <div class="series" id="dseries"></div>
+        <h2 id="dname"></h2>
+        <div class="price" id="dprice"></div>
+        <div class="row">
+          <div class="seg" role="group" aria-label="Side">
+            <button type="button" id="bfront" aria-pressed="true">Front</button>
+            <button type="button" id="bback" aria-pressed="false">Back</button>
+          </div>
+          <span class="hint" id="dhint">Drag the tee to turn</span>
+        </div>
+        <div class="label"><span>Size</span><span id="sizeout">M</span></div>
+        <div class="sizes" id="sizes" role="group" aria-label="Size"></div>
+        <a class="order" id="order" href="#collection">Order this tee</a>
+        <div class="status" id="status" aria-live="polite"></div>
+        <p class="fine">Photos are a preview. Final size and availability are confirmed when you order.</p>
+      </div>
+    </section>
+  </main>
+
+  <section class="fit" id="fit" aria-label="Fit for the week">
+    <div class="titlebar">
+      <div><h1>Fit for the week.</h1><p class="sub">Let me be your stylist.</p></div>
+      <div class="meta">Full looks<br>One price per fit</div>
+    </div>
+    <div class="ftabs" id="ftabs" role="group" aria-label="Choose a day"></div>
+    <div class="fit-grid">
+      <div class="rack" id="rack"></div>
+      <div class="fpanel">
+        <h2 id="fname"></h2>
+        <p class="tag" id="ftag"></p>
+        <div class="price" id="fprice"></div>
+        <div class="fdesc" id="fdesc"></div>
+        <ul class="pieces" id="fpieces"></ul>
+        <div class="label"><span>Size (top and pants)</span><span id="fsizeout">M</span></div>
+        <div class="sizes" id="fsizes" role="group" aria-label="Fit size"></div>
+        <a class="order" id="forder" href="#fit">Order this fit</a>
+        <div class="status" id="fstatus" aria-live="polite"></div>
+        <p class="fine">Shoe size, chain length and bracelet size are confirmed when you order.</p>
+      </div>
+    </div>
+  </section>
+
+  <footer><span>&copy; 2026 VerbTha God</span><span>Prices in Ghana cedis (GH&#8373;)</span></footer>
+</div>
+
+<script>
+/* ---- Settings you can edit ---- */
+var ORDER_URL = "";            // paste your store / WhatsApp / Instagram link here
+var SIZES = ["XS","S","M","L","XL","XXL"];
+var SHIRTS = [
+  {name:"Money Tee",            series:"Graphic tee",  price:150, front:"img/money-front.jpg",            back:null},
+  {name:"Richness, Sand",       series:"Washed tee",   price:210, front:"img/richness-tan-front.jpg",     back:"img/richness-tan-back.jpg"},
+  {name:"New York Brooklyn",    series:"Graphic tee",  price:250, front:"img/newyork-front.jpg",          back:"img/newyork-back.jpg"},
+  {name:"Richness, Washed Black",series:"Washed tee",  price:190, front:"img/richness-charcoal-front.jpg",back:null},
+  {name:"Tolerance",            series:"Graphic tee",  price:230, front:null,                             back:"img/tolerance-back.jpg"}
+];
+
+/* ---- Helpers ---- */
+function $(id){return document.getElementById(id)}
+function pad(n){return (n<10?"0":"")+n}
+function cedi(n){return "GH₵ "+n}
+var reduce = window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches;
+var motion = !reduce;
+var root = document.documentElement;
+var stage = $("stage");
+var HOOK = '<svg class="hook" viewBox="0 0 44 30" aria-hidden="true"><circle cx="22" cy="10" r="5.5" fill="none" stroke="#141413" stroke-width="2"/><path d="M22 15.5 V30" fill="none" stroke="#141413" stroke-width="2" stroke-linecap="round"/></svg>';
+
+/* ---- Swing physics (a pendulum per hanger) ---- */
+var swingers = [];
+function makeSwinger(el){var s={el:el,th:0,w:0,seed:Math.random()*6.28};swingers.push(s);return s}
+function nudge(s,v){if(motion){s.w+=v}}
+var last = performance.now();
+function frame(now){
+  var dt = Math.min(0.033,(now-last)/1000); last = now;
+  for(var i=0;i<swingers.length;i++){
+    var s=swingers[i];
+    if(!s.el.offsetParent && s.el.offsetWidth===0){continue}
+    if(!motion){ if(s.th!==0){s.th=0;s.w=0;s.el.style.transform=""} continue }
+    var sway = Math.sin(now/1300+s.seed)*0.9;            /* faint idle sway, degrees */
+    var acc = -60*(s.th-sway) - 3.2*s.w;                 /* spring toward rest, with damping */
+    s.w += acc*dt; s.th += s.w*dt;
+    if(s.th>28){s.th=28;s.w*=-.3} if(s.th<-28){s.th=-28;s.w*=-.3}
+    s.el.style.transform = "rotate("+s.th.toFixed(2)+"deg)";
+  }
+  requestAnimationFrame(frame);
+}
+
+/* ---- Rail ---- */
+var rail = $("rail"), dots = $("dots");
+var focus = 0, openIdx = -1;
+var slots = [];
+SHIRTS.forEach(function(sh,i){
+  var main = sh.front || sh.back;
+  var slot = document.createElement("div"); slot.className="slot";
+  var hang = document.createElement("button"); hang.type="button"; hang.className="hang";
+  hang.setAttribute("aria-label", sh.name+", "+cedi(sh.price)+". Open details");
+  hang.innerHTML = HOOK+'<span class="art"><img src="'+main+'" alt="'+sh.name+(sh.front?"":" (back view)")+'" draggable="false"></span><span class="shadow"></span>';
+  slot.appendChild(hang); rail.appendChild(slot);
+  var sw = makeSwinger(hang);
+  slots.push({slot:slot,hang:hang,sw:sw});
+  hang.addEventListener("click",function(){ if(dragMoved) return; setFocus(i); openDetail(i) });
+  hang.addEventListener("pointerenter",function(e){ if(e.pointerType==="mouse") setFocus(i) });
+
+  var d = document.createElement("button"); d.type="button"; d.className="dot";
+  d.setAttribute("aria-label","Show "+sh.name);
+  d.addEventListener("click",function(){setFocus(i)});
+  dots.appendChild(d);
+});
+$("ctotal").textContent = pad(SHIRTS.length);
+$("navcount").textContent = pad(SHIRTS.length);
+
+function setFocus(i){
+  focus = (i+SHIRTS.length)%SHIRTS.length;
+  slots.forEach(function(o,k){o.slot.setAttribute("data-focus",k===focus?"true":"false")});
+  [].forEach.call(dots.children,function(d,k){ if(k===focus) d.setAttribute("aria-current","true"); else d.removeAttribute("aria-current") });
+  var sh = SHIRTS[focus];
+  $("cnum").textContent = pad(focus+1);
+  $("wname").textContent = sh.name;
+  $("wprice").textContent = cedi(sh.price) + (sh.front?"":"  ·  back view");
+  var sc = $("railscroll"), el = slots[focus].slot;
+  var target = el.offsetLeft - (sc.clientWidth - el.offsetWidth)/2;
+  if(sc.scrollWidth>sc.clientWidth+4) sc.scrollTo({left:target,behavior:motion?"smooth":"auto"});
+}
+$("prev").addEventListener("click",function(){setFocus(focus-1); nudge(slots[focus].sw,9)});
+$("next").addEventListener("click",function(){setFocus(focus+1); nudge(slots[focus].sw,-9)});
+$("wopen").addEventListener("click",function(){openDetail(focus)});
+
+/* dragging a hand across the rail sets the tees swinging */
+var dragMoved=false, lastX=null, downX=null;
+var rs = $("railscroll");
+rs.addEventListener("pointerdown",function(e){downX=e.clientX; dragMoved=false});
+rs.addEventListener("pointermove",function(e){
+  if(lastX!==null){
+    var dx = e.clientX-lastX;
+    for(var i=0;i<slots.length;i++){
+      var r = slots[i].hang.getBoundingClientRect();
+      if(e.clientX>r.left && e.clientX<r.right){ nudge(slots[i].sw, Math.max(-14,Math.min(14,dx*0.55))) }
+    }
+  }
+  lastX=e.clientX;
+  if(downX!==null && Math.abs(e.clientX-downX)>8) dragMoved=true;
+});
+rs.addEventListener("pointerup",function(){downX=null; setTimeout(function(){dragMoved=false},0)});
+rs.addEventListener("pointerleave",function(){lastX=null});
+
+/* ---- Detail ---- */
+var ang=0, face="front", size="M", animId=0;
+var flip=$("flip"), dimg=$("dimg"), turn=$("turn");
+var dsw = makeSwinger($("dhang"));
+var SIZEBTNS=[];
+SIZES.forEach(function(z){
+  var b=document.createElement("button"); b.type="button"; b.textContent=z; b.setAttribute("aria-pressed",z===size?"true":"false");
+  b.addEventListener("click",function(){ size=z; paintSize(); });
+  $("sizes").appendChild(b); SIZEBTNS.push(b);
+});
+function paintSize(){
+  SIZEBTNS.forEach(function(b){b.setAttribute("aria-pressed",b.textContent===size?"true":"false")});
+  $("sizeout").textContent=size;
+  if(openIdx>=0){
+    var sh=SHIRTS[openIdx];
+    $("status").textContent="";
+    if(ORDER_URL){ $("order").href = ORDER_URL + (ORDER_URL.indexOf("?")>-1?"&":"?") + "tee="+encodeURIComponent(sh.name)+"&size="+size; }
+  }
+}
+function render(){
+  var sh = SHIRTS[openIdx];
+  var showBack = ang>90;
+  var src = showBack ? sh.back : sh.front;
+  if(!src) src = sh.front || sh.back;
+  if(dimg.getAttribute("src")!==src) dimg.setAttribute("src",src);
+  dimg.alt = sh.name + (showBack?" (back)":" (front)");
+  dimg.style.transform = showBack ? "scaleX(-1)" : "";
+  flip.style.transform = "rotateY("+ang.toFixed(1)+"deg)";
+  var f = !showBack;
+  $("bfront").setAttribute("aria-pressed",f?"true":"false");
+  $("bback").setAttribute("aria-pressed",f?"false":"true");
+}
+function animateTo(target){
+  cancelAnimationFrame(animId);
+  if(!motion){ang=target;render();return}
+  var from=ang, t0=performance.now(), dur=460;
+  (function step(now){
+    var t=Math.min(1,(now-t0)/dur), e=1-Math.pow(1-t,3);
+    ang=from+(target-from)*e; render();
+    if(t<1) animId=requestAnimationFrame(step);
+  })(t0);
+}
+function baseAngle(sh){return sh.front?0:180}
+function openDetail(i){
+  openIdx=i; var sh=SHIRTS[i];
+  stage.setAttribute("data-mode","detail");
+  $("dseries").textContent = sh.series+" · Volume 001";
+  $("dname").textContent = sh.name;
+  $("dprice").textContent = cedi(sh.price);
+  $("bfront").disabled = !sh.front; $("bback").disabled = !sh.back;
+  $("bfront").title = sh.front?"":"Front photo coming soon";
+  $("bback").title = sh.back?"":"Back photo coming soon";
+  $("dhint").textContent = (sh.front&&sh.back) ? "Drag the tee to turn" : (sh.front ? "Back photo coming soon" : "Front photo coming soon");
+  size="M"; ang=baseAngle(sh); render(); paintSize();
+  $("order").href = ORDER_URL || "#collection";
+  nudge(dsw, 16);
+  window.scrollTo({top:0,behavior:motion?"smooth":"auto"});
+  $("back").focus({preventScroll:true});
+}
+function closeDetail(){
+  var i=openIdx; openIdx=-1;
+  stage.setAttribute("data-mode","rail");
+  setFocus(i);
+  slots.forEach(function(o,k){ nudge(o.sw,(k%2?1:-1)*6) });
+  slots[i].hang.focus({preventScroll:true});
+}
+$("back").addEventListener("click",closeDetail);
+document.addEventListener("keydown",function(e){
+  if(e.key==="Escape" && openIdx>=0) closeDetail();
+  if(openIdx<0){ if(e.key==="ArrowRight") {setFocus(focus+1)} if(e.key==="ArrowLeft"){setFocus(focus-1)} }
+});
+$("bfront").addEventListener("click",function(){animateTo(0)});
+$("bback").addEventListener("click",function(){animateTo(180)});
+$("order").addEventListener("click",function(e){
+  if(!ORDER_URL){
+    e.preventDefault();
+    var sh=SHIRTS[openIdx];
+    $("status").textContent = sh.name+", size "+size+", "+cedi(sh.price)+". The order link has not been added to this site yet.";
+  }
+});
+
+/* drag to turn */
+var dragging=false, sx=0, sa=0;
+turn.addEventListener("pointerdown",function(e){
+  dragging=true; sx=e.clientX; sa=ang; cancelAnimationFrame(animId);
+  try{turn.setPointerCapture(e.pointerId)}catch(_){}
+});
+turn.addEventListener("pointermove",function(e){
+  if(!dragging) return;
+  var dx=e.clientX-sx, sh=SHIRTS[openIdx];
+  if(sh.front&&sh.back){ ang=Math.max(0,Math.min(180,sa+dx*0.6)); }
+  else { var base=baseAngle(sh); ang=base+Math.max(-22,Math.min(22,dx*0.25)) * (base?-1:1); }
+  render();
+});
+function endDrag(){
+  if(!dragging) return; dragging=false;
+  var sh=SHIRTS[openIdx];
+  if(sh.front&&sh.back) animateTo(ang>90?180:0); else animateTo(baseAngle(sh));
+}
+turn.addEventListener("pointerup",endDrag);
+turn.addEventListener("pointercancel",endDrag);
+
+/* ---- Motion switch ---- */
+function paintMotion(){ root.classList.toggle("no-motion",!motion); }
+
+$("storelink").addEventListener("click",function(e){ if(ORDER_URL){ this.href=ORDER_URL; this.target="_blank"; this.rel="noopener" } });
+
+/* ---- Fit for the week ---- */
+var FITS = [
+  {key:"Clean Monday", tag:"Soft, sharp, easy.", price:400,
+   pieces:[
+     {n:"Washed sand oversized tee", r:"Top", img:"img/fit-tee.jpg", w:38},
+     {n:"Washed black wide leg sweatpants", r:"Bottom", img:"img/fit-pants.jpg", w:23},
+     {n:"Silver cross necklace", r:"Neck", img:"img/fit-necklace.jpg", w:15},
+     {n:"Silver curb link bracelet", r:"Wrist", img:"img/fit-bracelet.jpg", w:17},
+     {n:"Black mid top canvas sneakers", r:"Shoes", img:"img/fit-shoes.jpg", floor:true}
+   ],
+   desc:["Monday asks for calm, not effort. The sand tee sits loose and boxy on top, and the washed black wide legs fall straight down with cream drawstrings that pick up the tee's colour. Black mid top sneakers with a white sole ground the whole thing.","A slim silver cross and a heavy curb bracelet are the only shine. Nothing is loud, and it still looks decided. Wear it to class, to work, or anywhere you want to look put together without trying."]},
+  {key:"Wednesday Espresso", tag:"Layers, cargos, clean whites.", price:250,
+   pieces:[
+     {n:"Washed black layered pocket tee", r:"Top", img:"img/fit2-tee.jpg", w:42},
+     {n:"Camo cargo pants", r:"Bottom", img:"img/fit2-cargo.jpg", w:30},
+     {n:"White low top sneakers", r:"Shoes", img:"img/fit2-shoes.jpg", floor:true}
+   ],
+   desc:["Espresso is the day you run on caffeine and good layering. The washed black pocket tee has white textured sleeves, so it reads as two tops in one and does the work of a jacket. Camo cargos in deep green and charcoal bring the texture, with pockets for your phone, keys and everything else you carry.","Clean white low top sneakers pick up the white sleeves and keep the look sharp. The pattern is loud, but the colours stay in black, white and army green. Wear it to a cafe, a lecture, or a midweek hangout."]},
+  {key:"Hood Friday", tag:"Quiet top, loud shorts.", price:500,
+   pieces:[
+     {n:"Black classic tee", r:"Top", img:"img/fit3-tee.jpg", w:30},
+     {n:"Brooklyn graphic basketball shorts", r:"Bottom", img:"img/fit3-shorts.jpg", w:28},
+     {n:"Black and white graphic beanie", r:"Head", img:"img/fit3-beanie.jpg", w:18},
+     {n:"Silver wheat link chain", r:"Neck", img:"img/fit3-chain.jpg", w:14},
+     {n:"White low top sneakers", r:"Shoes", img:"img/fit2-shoes.jpg", floor:true}
+   ],
+   desc:["Hood Friday is streetwear with the volume turned up. A plain black tee keeps the top quiet so the Brooklyn basketball shorts can do the talking, with the tiger, the flaming hoop, the number 23 and the blue and black trim.","The graphic beanie carries the black and white up to your head, a fine silver chain adds a little shine, and clean white low tops finish it. Wear it to the game, the link up, or anywhere the week ends loud."]},
+  {key:"Dark Lazy Saturday", tag:"Charcoal top, white denim.", price:250,
+   pieces:[
+     {n:"Charcoal button neck long sleeve tee", r:"Top", img:"img/fit4-henley.jpg", w:40},
+     {n:"Ripped white wide leg jeans", r:"Bottom", img:"img/fit4-jeans.jpg", w:26},
+     {n:"Silver curb link bracelet", r:"Wrist", img:"img/fit-bracelet.jpg", w:18}
+   ],
+   desc:["Saturday has no plans, so the fit has none either. A charcoal long sleeve with three buttons at the neck is soft, easy and a small step up from a tee. The ripped white wide leg jeans hang loose, with zips at the ankle for a worn in, relaxed shape.","The dark top against the white denim is the only contrast, and a silver curb bracelet is the one detail. Wear it to run errands, meet friends, or do nothing in style."]}
+];
+var fi=0, fsize="M", fitSw=[];
+var rack=$("rack"), FBTNS=[], FTABS=[];
+FITS.forEach(function(f,i){
+  var b=document.createElement("button"); b.type="button"; b.textContent=f.key;
+  b.addEventListener("click",function(){renderFit(i)});
+  $("ftabs").appendChild(b); FTABS.push(b);
+});
+SIZES.forEach(function(z){
+  var b=document.createElement("button"); b.type="button"; b.textContent=z;
+  b.addEventListener("click",function(){fsize=z; paintFSize()});
+  $("fsizes").appendChild(b); FBTNS.push(b);
+});
+function paintFSize(){
+  FBTNS.forEach(function(b){b.setAttribute("aria-pressed",b.textContent===fsize?"true":"false")});
+  $("fsizeout").textContent=fsize; $("fstatus").textContent="";
+  var f=FITS[fi];
+  $("forder").href = ORDER_URL ? ORDER_URL+(ORDER_URL.indexOf("?")>-1?"&":"?")+"fit="+encodeURIComponent(f.key)+"&size="+fsize : "#fit";
+}
+function renderFit(i){
+  fi=i; var f=FITS[i];
+  swingers = swingers.filter(function(s){return fitSw.indexOf(s)<0}); fitSw=[];
+  FTABS.forEach(function(b,k){b.setAttribute("aria-pressed",k===i?"true":"false")});
+  $("fname").textContent=f.key; $("ftag").textContent=f.tag;
+  $("fprice").textContent = f.pieces ? cedi(f.price)+"  ·  the full fit" : "Coming soon";
+  var live=!!f.pieces, ol=$("forder");
+  ol.style.display = live?"":"none"; $("fsizes").style.display=$("fsizes").previousElementSibling.style.display = live?"":"none";
+  $("fdesc").innerHTML = live ? f.desc.map(function(t){return "<p>"+t+"</p>"}).join("") : "<p>This look is still being styled. Photos land soon.</p>";
+  var ul=$("fpieces"); ul.innerHTML=""; rack.innerHTML='<div class="frail"></div>';
+  if(live){
+    var row=document.createElement("div"); row.className="fhangs"; rack.appendChild(row);
+    f.pieces.forEach(function(p){
+      var li=document.createElement("li"); li.innerHTML="<strong style=\"font-weight:inherit\">"+p.n+"</strong><span>"+p.r+"</span>"; ul.appendChild(li);
+      var el=document.createElement("div");
+      if(p.floor){ el.className="floor"; el.innerHTML='<img src="'+p.img+'" alt="'+p.n+'">'; rack.appendChild(el); }
+      else{
+        el.className="fh"; el.style.width=p.w+"%"; el.innerHTML=HOOK+'<img src="'+p.img+'" alt="'+p.n+'">'; row.appendChild(el);
+        var sw=makeSwinger(el); fitSw.push(sw);
+        el.addEventListener("pointerenter",function(){nudge(sw,10)});
+      }
+      el.addEventListener("pointerenter",function(){li.classList.add("on")});
+      el.addEventListener("pointerleave",function(){li.classList.remove("on")});
+    });
+    fitSw.forEach(function(s,k){setTimeout(function(){nudge(s,(k%2?1:-1)*(6+k))},90*k)});
+  } else { rack.insertAdjacentHTML("beforeend",'<p class="soon">Photos for '+f.key+' are coming soon.</p>'); }
+  paintFSize();
+}
+$("forder").addEventListener("click",function(e){
+  if(!ORDER_URL){ e.preventDefault(); var f=FITS[fi];
+    $("fstatus").textContent=f.key+", size "+fsize+", "+cedi(f.price)+". The order link has not been added to this site yet."; }
+});
+renderFit(0);
+
+paintMotion(); setFocus(0);
+/* a gentle swing when the page first loads */
+slots.forEach(function(o,k){ setTimeout(function(){nudge(o.sw,(k%2?1:-1)*(7+k))},120*k) });
+requestAnimationFrame(frame);
+</script>
